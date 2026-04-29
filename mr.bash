@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# https://github.com/vbem/multi-runners
+# https://github.com/ablassejr/multi-runners
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # common configurations
@@ -17,7 +17,7 @@ declare -rg DIR_THIS FILE_THIS
 
 # environment variables for customization
 # URL of this application
-declare -rg MR_URL='https://github.com/vbem/multi-runners'
+declare -rg MR_URL='https://github.com/ablassejr/multi-runners'
 # baseurl of GitHub service, defaults to https://github.com
 declare -rg MR_GITHUB_BASEURL="${MR_GITHUB_BASEURL:-https://github.com}"
 # baseurl of GitHub API, defaults to https://api.github.com
@@ -229,7 +229,7 @@ function mr::downloadRunner {
     if [[ -z "$url" ]]; then
         run::exists jq || return $?
 
-        # Detect architecture https://github.com/vbem/multi-runners/pull/26
+        # Detect architecture https://github.com/ablassejr/multi-runners/pull/26
         case "$(uname -m)" in
             x86_64 | amd64) arch="x64" ;;
             aarch64 | arm64) arch="arm64" ;;
@@ -241,7 +241,7 @@ function mr::downloadRunner {
         esac
 
         curlArgs=(-Lsm 3 --retry 1)
-        # https://github.com/vbem/multi-runners/pull/16
+        # https://github.com/ablassejr/multi-runners/pull/16
         [[ -n "$MR_GITHUB_PAT" ]] && curlArgs+=('-H' "Authorization: Bearer ${MR_GITHUB_PAT}")
         url="$(
             curl "${curlArgs[@]}" https://api.github.com/repos/actions/runner/releases/latest \
@@ -287,14 +287,14 @@ function mr::addRunner {
     [[ -z "$token" ]] && { token="$(mr::pat2token "$enterprise" "$org" "$repo")" || return $?; }
     tarpath="$(mr::downloadRunner)" || return $?
 
-    local commonLabels="controller:${MR_URL#https://},hostname:$HOSTNAME"
+    local commonLabels="controller:${MR_URL#https://},HOST_ADDR:$HOST_ADDR"
     commonLabels+=",createdtime:$(date --iso-8601=sec)"
     [[ -r /etc/os-release ]] && commonLabels+=",os:$(source /etc/os-release && echo "$ID-$VERSION_ID")"
     [[ -n "$extraLabels" ]] && commonLabels+=",$extraLabels"
-
+    HOST_ADDR="$(curl -s ifconfig.me)"
     for i in $(seq 1 "$count"); do
         user="$(mr::addUser "$username")" || return $?
-        local name="$user@$HOSTNAME"
+        local name="$user@$HOST_ADDR"
         local labels="$commonLabels,username:$user"
         local url=''
         if [[ -n "$enterprise" ]]; then
@@ -318,9 +318,9 @@ function mr::addRunner {
             ./config.sh --unattended --replace --url '$url' --token '$token' --name '$name' --labels '$labels' --runnergroup '$group' $opts
             sudo ./svc.sh install '$user'
             if [[ "$(getenforce 2>/dev/null)" == "Enforcing" ]]; then
-                chcon -t bin_t ./runsvc.sh # https://github.com/vbem/multi-runners/issues/9
+                chcon -t bin_t ./runsvc.sh # https://github.com/ablassejr/multi-runners/issues/9
             fi
-            $MR_CMD_SVC_PRE_START # https://github.com/vbem/multi-runners/issues/23
+            $MR_CMD_SVC_PRE_START # https://github.com/ablassejr/multi-runners/issues/23
             sudo ./svc.sh start
 __
         log::failed $? "Failed installing runner $i in local user '$user' for $url!" || return $?
